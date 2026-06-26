@@ -51,6 +51,8 @@ jobs:
             -scheme scarf \
             -configuration Debug \
             -derivedDataPath "$DERIVED_DATA" \
+            -arch arm64 \
+            ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
