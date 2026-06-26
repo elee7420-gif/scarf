@@ -32,7 +32,17 @@ jobs:
 
       - name: Select Xcode
         run: |
-          # Use default Xcode on the macOS runner (Xcode 26+)
+          ls -d /Applications/Xcode*.app 2>/dev/null
+          # Prefer Xcode 26.x (works with Swift 5 compatibility flags)
+          for v in 26.5 26.4 26.3 26.2 26.1 26.0 26.0.1 26.1.1; do
+            if [ -d "/Applications/Xcode_${v}.app" ]; then
+              sudo xcode-select -s "/Applications/Xcode_${v}.app/Contents/Developer"
+              echo "Selected Xcode ${v}"
+              xcodebuild -version
+              exit 0
+            fi
+          done
+          # Fallback
           if [ -d /Applications/Xcode.app ]; then
             sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           fi
