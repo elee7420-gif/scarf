@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest   # Xcode + Metal pre-installed
+    runs-on: macos-14   # Xcode 15.4 — Swift 5 compat, compiles the project cleanly
     timeout-minutes: 30
 
     steps:
@@ -30,14 +30,10 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Select Xcode 16
+      - name: Select Xcode version
         run: |
-          # Try Xcode 16 first (project targets Swift 6 with Xcode 16 compat)
-          if [ -d /Applications/Xcode_16.app ]; then
-            sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
-          elif [ -d /Applications/Xcode.app ]; then
-            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          fi
+          echo "Using default Xcode:"
+          xcodebuild -version 2>/dev/null || true
 
       - name: Build Scarf.app
         run: |
