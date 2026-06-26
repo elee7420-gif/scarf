@@ -1,0 +1,75 @@
+# Build Scarf.app on every push, upload as artifact.
+# On tag push (v*), also publish a GitHub Release with the .app.
+#
+# Usage:
+#   1. Push to main           → workflow builds, artifact available in run summary
+#   2. git tag v1.0.0 && push → workflow builds + creates Release
+
+name: Build Scarf
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+concurrency:
+  group: build-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write  # needed for Release creation
+
+jobs:
+  build:
+    runs-on: macos-latest   # Xcode + Metal pre-installed
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Build Scarf.app
+        run: |
+          cd "${{ github.workspace }}"
+          bash scripts/local-build.sh
+        env:
+          CI: 'true'
+          SCHEME: scarf
+          CONFIG: Debug
+
+      - name: Compress .app
+        run: |
+          cd "${{ github.workspace }}"
+          APP="build/DerivedData/Build/Products/Debug/scarf.app"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" scarf.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Scarf-app
+          path: scarf.zip
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download built app
+        uses: actions/download-artifact@v4
+        with:
+          name: Scarf-app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: scarf.zip
+          generate_release_notes: true
