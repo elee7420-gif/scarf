@@ -41,6 +41,10 @@ jobs:
           PROJECT="scarf/scarf.xcodeproj"
           DERIVED_DATA="build/DerivedData"
 
+          echo "Current dir: $(pwd)"
+          echo "Project path: $PROJECT"
+          ls -la "$PROJECT" 2>/dev/null || { echo "ERROR: project not found at $PROJECT"; ls -la; exit 1; }
+
           xcodebuild -resolvePackageDependencies -project "$PROJECT"
 
           xcodebuild \
@@ -54,7 +58,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" \
-            SWIFT_STRICT_CONCURRENCY=minimal \
             build
 
       - name: Compress .app
