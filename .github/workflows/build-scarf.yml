@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-latest  # macOS 15+, Xcode 26+ pre-installed
     timeout-minutes: 30
 
     steps:
@@ -30,20 +30,12 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Select Xcode version
+      - name: Select Xcode
         run: |
-          echo "=== Xcode versions available ==="
-          ls -d /Applications/Xcode*.app 2>/dev/null || echo "None found"
-          echo "=== Default Xcode ==="
-          xcodebuild -version 2>/dev/null || true
-          
-          # The project requires Xcode 16 (project file format 77).
-          # On macos-15 runner, Xcode 16.2+ has Swift 6 issues.
-          # Use Xcode 16.app (the default) and add compatibility flags.
+          # Use default Xcode on the macOS runner (Xcode 26+)
           if [ -d /Applications/Xcode.app ]; then
             sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           fi
-          echo "=== Selected Xcode ==="
           xcodebuild -version
 
       - name: Build Scarf.app
@@ -52,10 +44,6 @@ jobs:
           PROJECT="scarf/scarf.xcodeproj"
           DERIVED_DATA="build/DerivedData"
 
-          echo "Current dir: $(pwd)"
-          echo "Project path: $PROJECT"
-          ls -la "$PROJECT" 2>/dev/null || { echo "ERROR: project not found at $PROJECT"; ls -la; exit 1; }
-
           xcodebuild -resolvePackageDependencies -project "$PROJECT"
 
           xcodebuild \
@@ -63,15 +51,13 @@ jobs:
             -scheme scarf \
             -configuration Debug \
             -derivedDataPath "$DERIVED_DATA" \
-            -arch arm64 \
-            ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" \
             SWIFT_VERSION=5 \
             SWIFT_STRICT_CONCURRENCY=minimal \
-            build 2>&1 | tee /tmp/build.log
+            build
 
       - name: Compress .app
         run: |
