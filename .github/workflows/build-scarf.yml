@@ -1,0 +1,63 @@
+name: Build Scarf
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+concurrency:
+  group: build-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Select Xcode
+        run: |
+          if [ -d /Applications/Xcode.app ]; then
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          fi
+          xcodebuild -version
+      - name: Build Scarf.app
+        run: |
+          cd "${{ github.workspace }}"
+          PROJECT="scarf/scarf.xcodeproj"
+          DERIVED_DATA="build/DerivedData"
+          xcodebuild -resolvePackageDependencies -project "$PROJECT"
+          xcodebuild -project "$PROJECT" -scheme scarf -configuration Debug \
+            -derivedDataPath "$DERIVED_DATA" -arch arm64 ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" \
+            SWIFT_VERSION=5 SWIFT_STRICT_CONCURRENCY=minimal build
+      - name: Compress .app
+        run: |
+          cd "${{ github.workspace }}"
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/DerivedData/Build/Products/Debug/scarf.app scarf.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Scarf-app
+          path: scarf.zip
+          retention-days: 14
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Scarf-app
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: scarf.zip
+          generate_release_notes: true
