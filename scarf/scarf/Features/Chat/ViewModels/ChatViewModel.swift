@@ -759,14 +759,14 @@ final class ChatViewModel {
             case .empty:
                 richChatViewModel.transientHint = "Sent /goal — see the agent reply for current goal."
             }
-            scheduleHintClear()
+            Task { @MainActor in scheduleHintClear() }
         case "queue":
             let queuedText = parsed.args.trimmingCharacters(in: .whitespacesAndNewlines)
             if !queuedText.isEmpty {
                 richChatViewModel.recordQueuedPrompt(text: queuedText)
             }
             richChatViewModel.transientHint = "Queued — runs after current turn."
-            scheduleHintClear()
+            Task { @MainActor in scheduleHintClear() }
         case "subgoal":
             // v0.14 — /subgoal layers extra success criteria onto the
             // active /goal loop. Same optimistic-mirror pattern as
@@ -788,10 +788,10 @@ final class ChatViewModel {
             case .empty:
                 richChatViewModel.transientHint = "Sent /subgoal — see the agent reply for current subgoals."
             }
-            scheduleHintClear()
+            Task { @MainActor in scheduleHintClear() }
         case "steer" where isNonInterruptive:
             richChatViewModel.transientHint = "Guidance queued — applies after the next tool call."
-            scheduleHintClear()
+            Task { @MainActor in scheduleHintClear() }
         default:
             // Regular interruptive prompt (or an unrecognized slash).
             // Don't flip "Agent working…" for any other
@@ -980,7 +980,7 @@ final class ChatViewModel {
             return
         }
 
-        let caps = capabilitiesStore?.capabilities ?? .empty
+        let caps = await capabilitiesStore?.capabilities ?? .empty
         guard caps.hasACPSetSessionModel else {
             logger.info("host doesn't support session/set_model (pre-v0.13) — preset '\(preset.name)' bound but not applied")
             currentModelPreset = nil
@@ -1684,7 +1684,7 @@ final class ChatViewModel {
                 richChatViewModel.transientHint =
                     "Couldn't enable kanban tools: \(message)"
             }
-            scheduleHintClear()
+            Task { @MainActor in scheduleHintClear() }
         }
     }
 
